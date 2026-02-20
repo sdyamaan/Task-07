@@ -115,8 +115,7 @@
             display: none;
         }
 
-        .preview-container img,
-        .preview-container video {
+        .preview-container img {
             max-width: 100%;
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -169,8 +168,8 @@
     <div class="main-header">
         <div class="container">
             <div class="text-center">
-                <h1><i class="fab fa-twitter"></i> X/Twitter Media Downloader</h1>
-                <p>Download images and videos from X (Twitter) easily</p>
+                <h1><i class="fab fa-twitter"></i> X/Twitter Image Downloader</h1>
+                <p>Download images from X (Twitter) easily</p>
             </div>
         </div>
     </div>
@@ -179,13 +178,13 @@
         <div class="instructions">
             <h5><i class="fas fa-info-circle"></i> How to Use:</h5>
             <ul>
-                <li>Copy the URL of an X post containing an image or video</li>
-                <li>Paste it in the appropriate section below</li>
-                <li>Click the download button to view and save the media</li>
+                <li>Copy the URL of an X post containing an image</li>
+                <li>Paste it in the field below</li>
+                <li>Click the download button to view and save the image</li>
             </ul>
         </div>
 
-        <div class="row">
+        <div class="row justify-content-center">
             <!-- Image Download Section -->
             <div class="col-md-6">
                 <div class="download-card">
@@ -206,29 +205,6 @@
 
                     <div id="imageAlert"></div>
                     <div id="imagePreview" class="preview-container"></div>
-                </div>
-            </div>
-
-            <!-- Video Download Section -->
-            <div class="col-md-6">
-                <div class="download-card">
-                    <div class="card-icon">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <h3 class="section-title text-center">Download Video</h3>
-                    
-                    <div class="mb-3">
-                        <label for="videoUrl" class="form-label">X URL</label>
-                        <input type="text" class="form-control" id="videoUrl" 
-                               placeholder="https://x.com/username/status/...">
-                    </div>
-                    
-                    <button class="btn btn-download w-100" id="downloadVideoBtn">
-                        <i class="fas fa-download"></i> Download Video
-                    </button>
-
-                    <div id="videoAlert"></div>
-                    <div id="videoPreview" class="preview-container"></div>
                 </div>
             </div>
         </div>
@@ -348,13 +324,6 @@
                 try {
                     data = await fetchWithProxy(apiUrl);
                 } catch (proxyError) {
-                    // Fallback: construct image URLs directly from tweet ID
-                    // This is a workaround when APIs fail
-                    const fallbackImages = [
-                        `https://pbs.twimg.com/media/${tweetId}?format=jpg&name=large`,
-                        `https://pbs.twimg.com/media/${tweetId}?format=png&name=large`
-                    ];
-                    
                     previewDiv.innerHTML = `
                         <h5 class="text-center mb-4" style="color: var(--primary-blue);">
                             <i class="fas fa-info-circle"></i> Manual Download
@@ -409,7 +378,6 @@
             } catch (error) {
                 console.error('Error:', error);
                 
-                // Show manual download instructions
                 previewDiv.innerHTML = `
                     <h5 class="text-center mb-4" style="color: var(--primary-blue);">
                         <i class="fas fa-info-circle"></i> Manual Download Instructions
@@ -432,135 +400,6 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            }
-        });
-
-        // Download Video
-        document.getElementById('downloadVideoBtn').addEventListener('click', async function() {
-            const url = document.getElementById('videoUrl').value.trim();
-            const btn = this;
-            const previewDiv = document.getElementById('videoPreview');
-            const alertDiv = document.getElementById('videoAlert');
-            
-            if (!url) {
-                showAlert('videoAlert', 'Please enter a valid X post URL');
-                return;
-            }
-
-            const tweetId = extractTweetId(url);
-            if (!tweetId) {
-                showAlert('videoAlert', 'Invalid X post URL format. URL should contain /status/[numbers]');
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
-            previewDiv.style.display = 'none';
-            alertDiv.innerHTML = '';
-
-            try {
-                const apiUrl = `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&lang=en&token=a`;
-                
-                let data;
-                try {
-                    data = await fetchWithProxy(apiUrl);
-                } catch (proxyError) {
-                    // Fallback to manual instructions
-                    previewDiv.innerHTML = `
-                        <h5 class="text-center mb-4" style="color: var(--primary-blue);">
-                            <i class="fas fa-info-circle"></i> Manual Download
-                        </h5>
-                        <div class="alert alert-info">
-                            <p><strong>To download videos from this post:</strong></p>
-                            <ol>
-                                <li>Click the button below to open a video downloader site</li>
-                                <li>The URL will be pre-filled</li>
-                                <li>Click the download button on that site</li>
-                                <li>Choose your preferred quality and download</li>
-                            </ol>
-                        </div>
-                        <a href="https://twdown.net/download.php?URL=${encodeURIComponent(url)}" target="_blank" class="btn btn-download w-100 mb-2">
-                            <i class="fas fa-external-link-alt"></i> Download via TWDown
-                        </a>
-                        <a href="https://ssstwitter.com" target="_blank" class="btn btn-download w-100">
-                            <i class="fas fa-external-link-alt"></i> Download via SSSTwitter
-                        </a>
-                    `;
-                    previewDiv.style.display = 'block';
-                    showAlert('videoAlert', 'Please use one of the download services above.', 'warning');
-                    return;
-                }
-                
-                if (data.video && data.video.variants) {
-                    const variants = data.video.variants;
-                    const mp4Videos = variants
-                        .filter(v => v.type === 'video/mp4')
-                        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-                    
-                    if (mp4Videos.length > 0) {
-                        const bestVideo = mp4Videos[0];
-                        const videoUrl = bestVideo.src;
-                        
-                        let videoOptionsHtml = '';
-                        mp4Videos.forEach((video, index) => {
-                            const quality = video.bitrate 
-                                ? `${Math.round(video.bitrate / 1000)}kbps` 
-                                : 'Standard';
-                            const qualityLabel = index === 0 ? 'HD (Best Quality)' : quality;
-                            const filename = `x-video-${tweetId}-${quality}.mp4`;
-                            
-                            videoOptionsHtml += `
-                                <a href="${video.src}" download="${filename}" target="_blank" class="btn btn-download w-100 mb-2">
-                                    <i class="fas fa-download"></i> Download ${qualityLabel}
-                                </a>
-                            `;
-                        });
-                        
-                        previewDiv.innerHTML = `
-                            <h5 class="text-center mb-4" style="color: var(--primary-blue);">
-                                <i class="fas fa-video"></i> Video Preview
-                            </h5>
-                            <div class="media-item">
-                                <video controls class="img-fluid rounded mb-3">
-                                    <source src="${videoUrl}" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                            </div>
-                            <div class="alert alert-info mb-3">
-                                <i class="fas fa-info-circle"></i> Choose your preferred quality:
-                            </div>
-                            ${videoOptionsHtml}
-                        `;
-                        previewDiv.style.display = 'block';
-                        showAlert('videoAlert', 'Video loaded successfully!', 'success');
-                    } else {
-                        showAlert('videoAlert', 'Video format not supported.');
-                    }
-                } else {
-                    showAlert('videoAlert', 'No video found in this X post.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                
-                previewDiv.innerHTML = `
-                    <h5 class="text-center mb-4" style="color: var(--primary-blue);">
-                        <i class="fas fa-info-circle"></i> Alternative Download Methods
-                    </h5>
-                    <div class="alert alert-info">
-                        <p><strong>Use these trusted services to download the video:</strong></p>
-                    </div>
-                    <a href="https://twdown.net/download.php?URL=${encodeURIComponent(url)}" target="_blank" class="btn btn-download w-100 mb-2">
-                        <i class="fas fa-external-link-alt"></i> Download via TWDown
-                    </a>
-                    <a href="https://ssstwitter.com" target="_blank" class="btn btn-download w-100">
-                        <i class="fas fa-external-link-alt"></i> Download via SSSTwitter
-                    </a>
-                `;
-                previewDiv.style.display = 'block';
-                showAlert('videoAlert', 'Please use one of the services above.', 'warning');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-download"></i> Download Video';
             }
         });
 
